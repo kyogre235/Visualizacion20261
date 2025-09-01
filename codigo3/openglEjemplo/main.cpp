@@ -1,6 +1,7 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include <cmath>
 
 // Vertex Shader source code (GLSL 4.10)
 const char* vertexShaderSource = R"(
@@ -29,6 +30,25 @@ const char* fragmentShaderSource = R"(
     }
 )";
 
+void generaCirculo(float* arr, int num_segments, float radio, float centroX, float centroY) {
+    const float PI = 3.14159265358979323846f;
+    
+    // Primer vertice: el centro del circulo
+    arr[0] = centroX;
+    arr[1] = centroY;
+    arr[2] = 0.0f;
+
+    // Genera los vertices del perimetro
+    for (int i = 0; i <= num_segments; ++i) {
+        float angle = 2.0f * PI * (float)i / (float)num_segments;
+        float x = centroX + (radio * cosf(angle));
+        float y = centroY + (radio * sinf(angle));
+        
+        arr[3 * i + 3] = x;
+        arr[3 * i + 4] = y;
+        arr[3 * i + 5] = 0.0f;
+    }
+}
 int main()
 {
     // Initialize GLFW
@@ -132,6 +152,17 @@ int main()
          1.0f, 0.0f, 1.0f,
          0.0f, 1.0f, 1.0f
     };
+    
+
+    // Define el numero de segmentos
+    const int numSegments = 100;
+    // El tamaño del array es (numSegments + 2) vertices * 3 componentes (x, y, z)
+    const int totalVertices = (numSegments + 2) * 3;
+    float circleVertices[totalVertices];
+
+    // Llama a la funcion para llenar el array con los vertices del circulo
+    // El radio es 0.5 y el centro esta en (0.0, 0.0)
+    generaCirculo(circleVertices, numSegments, 0.5f, 0.0f, 0.0f);
 
     GLuint VBO, VAO;
     
@@ -142,7 +173,7 @@ int main()
     glBindVertexArray(VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(circleVertices), circleVertices, GL_STATIC_DRAW);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
@@ -185,8 +216,8 @@ int main()
         // Draw the triangle
         glUseProgram(shaderProgram);
         glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 20);
-
+        //glDrawArrays(GL_TRIANGLE_STRIP, 0, 20);
+        glDrawArrays(GL_TRIANGLE_FAN, 0, numSegments + 3);
         // Swap buffers and poll IO events
         glfwSwapBuffers(window);
         glfwPollEvents();

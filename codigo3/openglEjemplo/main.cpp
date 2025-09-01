@@ -12,8 +12,15 @@ const char* vertexShaderSource = R"(
 
     void main()
     {
-        gl_Position = vec4(aPos, 1.0);
+        const float windowWidth = 800.0;
+        const float windowHeight = 600.0;
+
+        float aspectRatio = windowWidth / windowHeight;
+
+
+        gl_Position = vec4(aPos.x, aPos.y * aspectRatio, aPos.z, 1.0);
         vertexColor = aColor ;
+
     }
 )";
 
@@ -30,25 +37,33 @@ const char* fragmentShaderSource = R"(
     }
 )";
 
-void generaCirculo(float* arr, int num_segments, float radio, float centroX, float centroY) {
+void generaCirculo(float* arr, int num_segments, float radio, float centroX, float centroY, const float* color) {
     const float PI = 3.14159265358979323846f;
     
-    // Primer vertice: el centro del circulo
+    // Vértice central
     arr[0] = centroX;
     arr[1] = centroY;
     arr[2] = 0.0f;
+    arr[3] = color[0];
+    arr[4] = color[1];
+    arr[5] = color[2];
 
-    // Genera los vertices del perimetro
+    // Vértices del perímetro
     for (int i = 0; i <= num_segments; ++i) {
         float angle = 2.0f * PI * (float)i / (float)num_segments;
         float x = centroX + (radio * cosf(angle));
         float y = centroY + (radio * sinf(angle));
         
-        arr[3 * i + 3] = x;
-        arr[3 * i + 4] = y;
-        arr[3 * i + 5] = 0.0f;
+        arr[6 * i + 6] = x;
+        arr[6 * i + 7] = y;
+        arr[6 * i + 8] = 0.0f;
+        arr[6 * i + 9] = color[0];
+        arr[6 * i + 10] = color[1];
+        arr[6 * i + 11] = color[2];
     }
 }
+
+
 int main()
 {
     // Initialize GLFW
@@ -153,16 +168,13 @@ int main()
          0.0f, 1.0f, 1.0f
     };
     
-
-    // Define el numero de segmentos
     const int numSegments = 100;
-    // El tamaño del array es (numSegments + 2) vertices * 3 componentes (x, y, z)
-    const int totalVertices = (numSegments + 2) * 3;
-    float circleVertices[totalVertices];
+    const int totalData = (numSegments + 2) * 6;
+    float circleData[totalData];
 
-    // Llama a la funcion para llenar el array con los vertices del circulo
-    // El radio es 0.5 y el centro esta en (0.0, 0.0)
-    generaCirculo(circleVertices, numSegments, 0.5f, 0.0f, 0.0f);
+    float circleColor[] = {1.0f, 0.0f, 0.0f}; // Color rojo
+
+    generaCirculo(circleData, numSegments, 0.5f, 0.0f, 0.0f, circleColor);
 
     GLuint VBO, VAO;
     
@@ -173,13 +185,16 @@ int main()
     glBindVertexArray(VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(circleVertices), circleVertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(circleData), circleData, GL_STATIC_DRAW);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
     /*(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(sizeof(float)*3));
     glEnableVertexAttribArray(1);*/
-
+    
+    // Atributo de color (layout 1)
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
 
     // Unbind the VAO
     glBindVertexArray(0);
@@ -210,14 +225,14 @@ int main()
             glfwSetWindowShouldClose(window, true);
 
         // Render
-        glClearColor(0.0f, 0.3f, 0.8f, 1.0f);
+        glClearColor(1.0f, 0.3f, 0.7f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
         // Draw the triangle
         glUseProgram(shaderProgram);
         glBindVertexArray(VAO);
         //glDrawArrays(GL_TRIANGLE_STRIP, 0, 20);
-        glDrawArrays(GL_TRIANGLE_FAN, 0, numSegments + 3);
+        glDrawArrays(GL_TRIANGLE_FAN, 0, numSegments + 2);
         // Swap buffers and poll IO events
         glfwSwapBuffers(window);
         glfwPollEvents();
